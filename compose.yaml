@@ -1,0 +1,28 @@
+name: indexlab
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    entrypoint: ["bash", "/init_scripts/compose-entrypoint.sh"]
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${LAB_PASSWORD:?Set LAB_PASSWORD in .env before starting the lab}
+    ports:
+      - "127.0.0.1:14330:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./data:/data:ro
+      - ./init_scripts:/init_scripts:ro
+      - ./queries:/queries:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - test -s /var/opt/mssql/indexlab-ready && SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -l 3 -d indexlab -Q 'SELECT 1' > /dev/null
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+volumes:
+  sqlserver-data:
